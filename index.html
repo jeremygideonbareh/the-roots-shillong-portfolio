@@ -7,8 +7,10 @@
   <meta name="description" content="Explore photography, film, design and live productions from The Roots – Ki Thied Tynrai, a creative production house in Shillong, Meghalaya.">
   <title>The Roots Shillong — Ki Thied Tynrai</title>
   <link rel="icon" href="./assets/brand.png">
+  <link rel="preload" as="image" href="./assets/brand.png" fetchpriority="high">
+  <link rel="preload" as="image" href="./assets/work/photography-03.webp" fetchpriority="high">
   <link rel="stylesheet" href="./assets/fonts.css">
-  <link rel="stylesheet" href="./style.css?v=scroll-story-3">
+  <link rel="stylesheet" href="./style.css?v=logo-intro-1">
   <script defer src="./assets/gsap.min.js"></script>
   <script defer src="./assets/ScrollTrigger.min.js"></script>
   <script defer src="./collection.js"></script>
@@ -17,11 +19,88 @@
 <body>
   <a class="skip" href="#work">Skip to work</a>
   <div class="reading-progress" aria-hidden="true"></div>
+  <div class="brand-intro" hidden aria-hidden="true">
+    <div class="intro-paper"></div>
+    <div class="intro-mark">
+      <img class="intro-impression" src="./assets/brand.png" alt="" width="620" height="261">
+      <img class="intro-ink" src="./assets/brand.png" alt="" width="620" height="261">
+    </div>
+  </div>
   <header class="mast wrap" id="top">
     <a class="brand" href="#top" aria-label="The Roots Shillong home"><img src="./assets/brand.png" alt="The Roots — Ki Thied Tynrai"></a>
     <nav aria-label="Main navigation"><a href="#work">Selected work</a><a href="#archive">Archive</a><a href="#studio">Studio</a></nav>
     <div class="mast-actions"><button class="motion-toggle" type="button" aria-label="Scroll animations" aria-pressed="false" hidden>Motion off</button><a class="contact-link" href="#contact">Get in touch</a></div>
   </header>
+  <script>
+  (() => {
+    const intro = document.querySelector('.brand-intro');
+    const mark = intro.querySelector('.intro-mark');
+    const ink = intro.querySelector('.intro-ink');
+    const headerLogo = document.querySelector('.brand img');
+    let disabled = false;
+    try { disabled = localStorage.getItem('roots-scroll-motion') === 'off'; } catch {}
+    const navigation = performance.getEntriesByType('navigation')[0];
+    if (disabled || location.hash || navigation?.type === 'back_forward' || !mark.animate) {
+      intro.remove();
+      return;
+    }
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const maxWait = setTimeout(finish, 2800);
+    function finish() {
+      clearTimeout(maxWait);
+      controller.abort();
+      document.documentElement.classList.remove('showing-intro');
+      intro.remove();
+    }
+    for (const event of ['wheel', 'touchstart', 'pointerdown', 'keydown', 'pagehide', 'resize']) {
+      window.addEventListener(event, finish, {passive:true, signal});
+    }
+    intro.hidden = false;
+    document.documentElement.classList.add('showing-intro');
+    const cover = new Image();
+    cover.src = './assets/work/photography-03.webp';
+
+    async function play() {
+      await ink.decode();
+      if (signal.aborted) return;
+      const reveal = reduced
+        ? [{opacity:0}, {opacity:1}]
+        : [{maskPosition:'100% 50%'}, {maskPosition:'0% 50%'}];
+      const drawing = ink.animate(reveal, {
+        duration:reduced ? 180 : 880, easing:'cubic-bezier(.4,0,.16,1)', fill:'both'
+      });
+      const ready = Promise.all([cover.decode().catch(() => {}), document.fonts.ready]);
+      const waitBudget = new Promise(resolve => setTimeout(resolve, reduced ? 350 : 1200));
+      await Promise.all([drawing.finished, Promise.race([ready, waitBudget])]);
+      if (signal.aborted) return;
+      const ease = 'cubic-bezier(.65,0,.22,1)';
+      const duration = reduced ? 180 : 760;
+      if (!reduced) {
+        // Match the painted wordmark inside the header image's object-fit box.
+        const start = mark.getBoundingClientRect();
+        const dest = headerLogo.getBoundingClientRect();
+        const width = Math.min(dest.width, dest.height * start.width / start.height);
+        const scale = width / start.width;
+        const x = dest.left - start.left;
+        const y = dest.top + (dest.height - start.height * scale) / 2 - start.top;
+        mark.animate([{transform:'none'}, {transform:'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')'}],
+          {duration, easing:ease, fill:'both'});
+      } else {
+        mark.animate([{opacity:1},{opacity:0}],{duration,fill:'both'});
+      }
+      const curtain = intro.querySelector('.intro-paper').animate(
+        [{opacity:1,offset:0}, {opacity:1,offset:.14}, {opacity:0,offset:1}],
+        {duration,easing:'ease-in-out',fill:'both'}
+      );
+      await curtain.finished;
+      finish();
+    }
+    play().catch(finish);
+  })();
+  </script>
   <main>
     <section class="opening wrap" aria-labelledby="cover-title">
       <div class="hero-intro">
