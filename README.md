@@ -14,6 +14,6 @@ The site includes all 84 gallery items from the six disciplines on [The Roots’
 
 ## Interaction
 
-GSAP and ScrollTrigger drive the pinned project sequence and parallax. Previous and next controls, keyboard navigation and touch gestures provide alternative ways to explore. Reduced-motion preferences keep the gallery in native horizontal scrolling mode. The full-size image viewer supports the arrow keys and Escape.
+Motion max is the first-visit default. Vertical scrolling wipes between the opening photographs, then moves the selected projects horizontally. The header motion switch saves the visitor’s choice. Motion off removes the pins and restores native horizontal browsing. Previous and next controls, keyboard navigation and touch gestures provide alternative ways to explore. The full-size image viewer supports the arrow keys and Escape.
 
 DM Sans and Instrument Serif are served locally under the SIL Open Font License. GSAP and ScrollTrigger are bundled with their distribution notices.

@@ -8,14 +8,16 @@ const labels = {
 const items = window.rootsCollection;
 const byId = new Map(items.map(item => [item.id, item]));
 const pad = value => String(value).padStart(2, '0');
-const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+let motionOverride = null;
+try { motionOverride = localStorage.getItem('roots-scroll-motion'); } catch {}
+const motionEnabled = () => motionOverride !== 'off';
 const contactSheetReveal = new IntersectionObserver(entries => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
     contactSheetReveal.unobserve(entry.target);
-    if (motion.matches) {
-      entry.target.animate([{opacity: .15, transform: 'translateY(20px)'}, {opacity: 1, transform: 'none'}],
-        {duration: 520, easing: 'cubic-bezier(.2,.7,.2,1)'});
+    if (motionEnabled()) {
+      entry.target.animate([{opacity: .15, transform: 'translateY(45px)'}, {opacity: 1, transform: 'none'}],
+        {duration: 720, easing: 'cubic-bezier(.2,.7,.2,1)'});
     }
   }
 }, {threshold: .08});
@@ -49,8 +51,18 @@ function showCover(position) {
   $('#hero-type').textContent = labels[item.category];
   $('.hero-frame').setAttribute('aria-description', item.description || item.name);
 }
-$('#hero-prev').addEventListener('click', () => showCover(activeCover - 1));
-$('#hero-next').addEventListener('click', () => showCover(activeCover + 1));
+let fieldSequence;
+function goToCover(direction) {
+  const index = (activeCover + direction + covers.length) % covers.length;
+  if (fieldSequence) {
+    const trigger = fieldSequence.scrollTrigger;
+    window.scrollTo({top: trigger.start + (trigger.end - trigger.start) * index / (covers.length - 1), behavior: 'instant'});
+    ScrollTrigger.update();
+  }
+  showCover(index);
+}
+$('#hero-prev').addEventListener('click', () => goToCover(-1));
+$('#hero-next').addEventListener('click', () => goToCover(1));
 showCover(0);
 
 const stories = window.rootsStories;
@@ -87,7 +99,7 @@ function railStatus(distance) {
 }
 function goToStory(index) {
   const distance = storyPositions()[Math.max(0, Math.min(stories.length - 1, index))];
-  const behavior = motion.matches ? 'smooth' : 'instant';
+  const behavior = motionEnabled() ? 'smooth' : 'instant';
   if (railTween) {
     const trigger = railTween.scrollTrigger;
     window.scrollTo({top: trigger.start + (trigger.end - trigger.start) * distance / Math.max(1, travel()), behavior});
@@ -214,17 +226,32 @@ $('#studio-image').alt = studioItem.description || studioItem.name;
 
 if (window.gsap && window.ScrollTrigger) {
   gsap.registerPlugin(ScrollTrigger);
-  const mm = gsap.matchMedia();
-  mm.add('(prefers-reduced-motion: no-preference)', () => {
-    gsap.from('.hero-intro > *', {y: 24, opacity: 0, stagger: .12, duration: .75, ease: 'power3.out', clearProps: 'all'});
-    gsap.fromTo('.hero-images', {scale: 1.09, yPercent: -3}, {yPercent: 3, scale: 1.09, ease: 'none', scrollTrigger: {trigger: '.hero-frame', start: 'top bottom', end: 'bottom top', scrub: true}});
+  function buildScenes() {
+    const frames = $$('.hero-images img');
+    const title = $('#cover-title');
+    gsap.to(title, {xPercent: -9, yPercent: -18, ease: 'none', scrollTrigger: {start: 0, end: () => '+=' + Math.max(180, title.getBoundingClientRect().top + scrollY + title.offsetHeight), scrub: true}});
+    gsap.fromTo('.hero-frame', {scale: 1}, {scale: 1.065, ease: 'none', scrollTrigger: {trigger: '.hero-pin', start: 'top 65%', end: 'center center', scrub: true}});
+    // Keep the outgoing photograph underneath the incoming wipe, including on reverse scroll.
+    gsap.set(frames.slice(1), {clipPath:'inset(0% 100% 0% 0%)'});
+    fieldSequence = gsap.timeline({defaults:{ease:'none'},scrollTrigger:{
+      trigger: '.hero-pin', start:'center center', end: () => '+=' + Math.max(580, innerHeight * 1.5),
+      pin:true, scrub:true, invalidateOnRefresh:true, anticipatePin:1,
+      onUpdate(self) {
+        const index = Math.round(self.progress * (frames.length - 1));
+        if (activeCover !== index) showCover(index);
+      }
+    }});
+    fieldSequence.fromTo(frames[0], {scale:1.02}, {scale:1.2,duration:1}, 0);
+    frames.slice(1).forEach((frame,i) => {
+      fieldSequence.to(frame,{clipPath:'inset(0% 0% 0% 0%)',duration:.7},i + .15);
+      fieldSequence.fromTo(frame,{scale:1.18},{scale:1,duration:1},i);
+    });
+    fieldSequence.to('.scene-progress i',{scaleX:1,duration:frames.length-1},0);
     gsap.to('.reading-progress', {scaleX: 1, ease: 'none', scrollTrigger: {start: 0, end: 'max', scrub: true}});
     for (const node of $$('.archive .section-top, .studio-copy, .footer h2')) {
-      gsap.from(node, {y: 32, opacity: 0, duration: .85, ease: 'power3.out', scrollTrigger: {trigger: node, start: 'top 96%', once: true}, clearProps: 'all'});
+      gsap.from(node, {y: 68, opacity: .2, ease:'none', scrollTrigger:{trigger:node, start:'top 99%', end:'top 68%', scrub:true}});
     }
-    gsap.fromTo('#studio-image', {scale: 1.13, yPercent: -4}, {scale: 1.13, yPercent: 4, ease: 'none', scrollTrigger: {trigger: '.studio-photo', start: 'top bottom', end: 'bottom top', scrub: true}});
-  });
-  mm.add('(min-height: 680px) and (prefers-reduced-motion: no-preference)', () => {
+    gsap.fromTo('#studio-image', {scale:1.34, yPercent:-9}, {scale:1.18, yPercent:7, ease:'none',scrollTrigger:{trigger:'.studio-photo',start:'top bottom',end:'bottom top',scrub:true}});
     const section = $('.selected');
     section.classList.add('is-pinned');
     stage.scrollLeft = 0;
@@ -232,7 +259,37 @@ if (window.gsap && window.ScrollTrigger) {
       trigger: '.rail-stage', start: 'center center', end: () => '+=' + travel(), pin: true,
       scrub: true, invalidateOnRefresh: true, anticipatePin: 1, onUpdate: self => railStatus(self.progress * travel())
     }});
-    return () => {railTween = null; section.classList.remove('is-pinned'); railStatus(stage.scrollLeft);};
+    for (const card of $$('.story-card')) {
+      const pass = gsap.timeline({defaults:{ease:'none'},scrollTrigger:{
+        trigger:card,containerAnimation:railTween,start:'left right',end:'right left',scrub:true
+      }});
+      pass.fromTo($('.story-picture img',card),{scale:1.18,xPercent:-7},{scale:1.18,xPercent:7},0);
+      pass.fromTo($('.story-caption',card),{x:32},{x:0},0);
+    }
+  }
+  let scenes;
+  const toggle = $('.motion-toggle');
+  function configureMotion() {
+    scenes?.revert();
+    scenes = fieldSequence = railTween = null;
+    $('.selected').classList.remove('is-pinned');
+    const enabled = motionEnabled();
+    document.body.classList.toggle('motion-enabled', enabled);
+    toggle.hidden = false;
+    toggle.setAttribute('aria-pressed', String(enabled));
+    toggle.textContent = enabled ? 'Motion max' : 'Motion off';
+    if (enabled) {
+      showCover(0);
+      scenes = gsap.context(buildScenes);
+    }
+    railStatus(stage.scrollLeft);
+    ScrollTrigger.refresh();
+  }
+  toggle.addEventListener('click', () => {
+    motionOverride = motionEnabled() ? 'off' : 'on';
+    try { localStorage.setItem('roots-scroll-motion', motionOverride); } catch {}
+    configureMotion();
   });
+  configureMotion();
   document.fonts.ready.then(() => ScrollTrigger.refresh());
 }
