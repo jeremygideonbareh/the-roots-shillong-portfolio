@@ -18,7 +18,8 @@ h1 em{margin-left:.045em}.is-pinned .rail-window{touch-action:pan-y pinch-zoom}
 .motion-toggle::before{content:'';width:.52rem;height:.52rem;border:1px solid;border-radius:50%}
 .motion-toggle[aria-pressed=true]::before{background:currentColor}
 .hero-pin{position:relative}
-.motion-enabled .hero-frame{height:clamp(15rem,68svh,54rem)}
+.motion-enabled .hero-pin{--field-height:clamp(15rem,68svh,54rem);height:calc(var(--field-height) + max(580px,150vh))}
+.motion-enabled .hero-frame{height:var(--field-height);position:sticky;top:calc((100vh - var(--field-height))/2)}
 .motion-enabled .hero-images img{opacity:1;transition:none}
 .motion-enabled .story-picture img{transition:none}
 body:not(.motion-enabled) *,body:not(.motion-enabled) *::before,body:not(.motion-enabled) *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
@@ -27,5 +28,5 @@ body:not(.motion-enabled) *,body:not(.motion-enabled) *::before,body:not(.motion
 .scene-progress i{display:block;height:100%;background:var(--paper);transform:scaleX(0);transform-origin:left}
 .motion-enabled .archive-card:focus-visible{opacity:1!important;transform:none!important}
 @media(max-height:679px){.selected.is-pinned .rail-stage{padding-top:.5rem}.selected.is-pinned .section-top{flex-direction:row;align-items:flex-end}.selected.is-pinned .section-top h2{font-size:clamp(2.7rem,6.7svh,4rem)}.selected.is-pinned .rail-window{margin-top:.65rem}.selected.is-pinned .story-picture{height:36svh}.selected.is-pinned .rail-foot{padding:.4rem 0}.selected.is-pinned .story-caption h3{font-size:clamp(1.45rem,4.8svh,2.6rem)}}
-@media(max-width:590px){.mast-actions{grid-column:2;grid-row:1}.mast nav{grid-column:1/-1}.motion-enabled .hero-frame{height:clamp(18rem,58svh,35rem)}}
+@media(max-width:590px){.mast-actions{grid-column:2;grid-row:1}.mast nav{grid-column:1/-1}.motion-enabled .hero-pin{--field-height:clamp(18rem,58svh,35rem)}}
 @media(max-height:440px){.selected.is-pinned .story-caption{grid-template-columns:1fr 1fr}.selected.is-pinned .story-caption p{font-size:.8rem}.selected.is-pinned .section-top .rule-label{display:none}}

@@ -230,12 +230,13 @@ if (window.gsap && window.ScrollTrigger) {
     const frames = $$('.hero-images img');
     const title = $('#cover-title');
     gsap.to(title, {xPercent: -9, yPercent: -18, ease: 'none', scrollTrigger: {start: 0, end: () => '+=' + Math.max(180, title.getBoundingClientRect().top + scrollY + title.offsetHeight), scrub: true}});
-    gsap.fromTo('.hero-frame', {scale: 1}, {scale: 1.065, ease: 'none', scrollTrigger: {trigger: '.hero-pin', start: 'top 65%', end: 'center center', scrub: true}});
+    const fieldStart = () => 'top ' + Math.round((innerHeight - $('.hero-frame').offsetHeight) / 2) + 'px';
+    gsap.fromTo('.hero-frame', {scale: 1}, {scale: 1.065, ease: 'none', scrollTrigger: {trigger: '.hero-pin', start: 'top 65%', end: fieldStart, scrub: true}});
     // Keep the outgoing photograph underneath the incoming wipe, including on reverse scroll.
     gsap.set(frames.slice(1), {clipPath:'inset(0% 100% 0% 0%)'});
     fieldSequence = gsap.timeline({defaults:{ease:'none'},scrollTrigger:{
-      trigger: '.hero-pin', start:'center center', end: () => '+=' + Math.max(580, innerHeight * 1.5),
-      pin:true, scrub:true, invalidateOnRefresh:true, anticipatePin:1,
+      id:'field-sequence',trigger: '.hero-pin', start:fieldStart, end: () => '+=' + ($('.hero-pin').offsetHeight - $('.hero-frame').offsetHeight),
+      scrub:true, invalidateOnRefresh:true,
       onUpdate(self) {
         const index = Math.round(self.progress * (frames.length - 1));
         if (activeCover !== index) showCover(index);
@@ -257,7 +258,7 @@ if (window.gsap && window.ScrollTrigger) {
     stage.scrollLeft = 0;
     railTween = gsap.to(rail, {x: () => -travel(), ease: 'none', scrollTrigger: {
       trigger: '.rail-stage', start: 'center center', end: () => '+=' + travel(), pin: true,
-      scrub: true, invalidateOnRefresh: true, anticipatePin: 1, onUpdate: self => railStatus(self.progress * travel())
+      scrub: true, invalidateOnRefresh: true, anticipatePin: 1, refreshPriority:1, onUpdate: self => railStatus(self.progress * travel())
     }});
     for (const card of $$('.story-card')) {
       const pass = gsap.timeline({defaults:{ease:'none'},scrollTrigger:{
